@@ -115,6 +115,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 .rest-msg{text-align:center;padding:40px 20px;color:var(--muted2)}
 .rest-msg .ico{font-size:36px;margin-bottom:10px;opacity:.35}
 /* Status bar */
+.cmode-row{display:flex;gap:8px;margin-bottom:12px}
+.cmode{padding:9px 18px;border-radius:18px;font-size:14px;font-weight:500;border:1px solid var(--border2);background:var(--bg4);color:var(--muted);cursor:pointer;transition:all .15s}
+.cmode.on{background:var(--teal);border-color:var(--teal);color:#0d2018}
+.cf-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.cf-row label{min-width:120px;font-size:13px;color:var(--muted);flex-shrink:0}
+.unit{font-size:12px;color:var(--muted2)}
 .status-bar{font-size:12px;color:var(--teal);font-family:'DM Mono',monospace;min-height:18px;text-align:center;margin-top:8px}
 .status-bar.err{color:var(--red)}
 /* File input hidden */
@@ -453,13 +459,43 @@ function renderForm() {
     html += '<div class="ex-meta">' + ex.muscle_group + (ex.is_compound ? ' &middot; Polyarticulaire' : '') + '</div>';
 
     if (isCardio) {
-      var prev = (typeof prevSets === 'object' && !Array.isArray(prevSets)) ? prevSets : {};
-      html += '<div style="display:grid;gap:10px">';
-      html += '<div><div class="set-hdr" style="text-align:left;margin-bottom:5px">Durée (min)</div>';
-      html += '<input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_dur" value="' + (prev.duree || '') + '" placeholder="40" style="max-width:120px"></div>';
-      html += '<div><div class="set-hdr" style="text-align:left;margin-bottom:5px">FC moyenne (bpm)</div>';
-      html += '<input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_bpm" value="' + (prev.fc_moy || '') + '" placeholder="110" style="max-width:120px"></div>';
+      var d2 = (typeof prevSets === 'object' && !Array.isArray(prevSets) && prevSets.mode) ? prevSets : {};
+      var mode = ex.type === 'hiit' ? 'hiit' : (d2.mode || 'z2');
+      // Boutons Zone 2 / HIIT
+      html += '<div class="cmode-row">';
+      html += '<div class="cmode' + (mode==='z2'?' on':'') + '" id="cm-z2-' + eid + '" onclick="swCM(' + eid + ','z2')">Zone 2</div>';
+      html += '<div class="cmode' + (mode==='hiit'?' on':'') + '" id="cm-hiit-' + eid + '" onclick="swCM(' + eid + ','hiit')">HIIT</div>';
       html += '</div>';
+      if (mode === 'z2') {
+        var app2 = d2.appareil || 'velo';
+        html += '<div id="cm-body-' + eid + '">';
+        html += '<div class="cf-row"><label>Appareil</label>';
+        html += '<select id="c' + eid + '_app" style="flex:1;background:var(--bg4);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:15px;padding:8px 10px">';
+        html += '<option value="velo"' + (app2==='velo'?' selected':'') + '>Vélo stationnaire</option>';
+        html += '<option value="elliptique"' + (app2==='elliptique'?' selected':'') + '>Elliptique</option>';
+        html += '<option value="rameur"' + (app2==='rameur'?' selected':'') + '>Rameur</option>';
+        html += '</select></div>';
+        html += '<div class="cf-row"><label>Durée totale</label><input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_dur" value="' + (d2.duree||'') + '" placeholder="40" style="max-width:110px"><span class="unit">min</span></div>';
+        html += '<div class="cf-row"><label>FC moyenne</label><input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_fcm" value="' + (d2.fc_moy||'') + '" placeholder="110" style="max-width:110px"><span class="unit">bpm</span></div>';
+        html += '<div class="cf-row"><label>FC max atteinte</label><input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_fcx" value="' + (d2.fc_max||'') + '" placeholder="118" style="max-width:110px"><span class="unit">bpm</span></div>';
+        html += '<div style="font-size:11px;color:var(--muted2);margin-top:5px">Zone 2 cible : 101–118 bpm</div>';
+        html += '</div>';
+      } else {
+        var ivs = d2.intervals || [{duree:3,bpm:90,bpm_reel:0},{duree:2,bpm:140,bpm_reel:0}];
+        var rounds = d2.rounds || 4;
+        html += '<div id="cm-body-' + eid + '">';
+        html += '<div class="cf-row"><label>Nombre de tours</label><input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_rounds" value="' + rounds + '" min="1" max="20" style="max-width:80px"></div>';
+        html += '<div class="set-hdrs" style="grid-template-columns:40px 1fr 1fr 1fr"><div></div><div class="set-hdr">Durée min</div><div class="set-hdr">BPM cible</div><div class="set-hdr">BPM réel</div></div>';
+        ivs.forEach(function(iv, i) {
+          html += '<div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;align-items:center">';
+          html += '<div class="set-lbl">#' + (i+1) + '</div>';
+          html += '<input class="set-inp" type="number" inputmode="decimal" id="c' + eid + '_iv' + i + '_dur" value="' + (iv.duree||'') + '" step="0.5">';
+          html += '<input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_iv' + i + '_bpm" value="' + (iv.bpm||'') + '">';
+          html += '<input class="set-inp" type="number" inputmode="numeric" id="c' + eid + '_iv' + i + '_real" value="' + (iv.bpm_reel||'') + '">';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
     } else {
       html += '<div class="set-hdrs"><div></div><div class="set-hdr">Poids kg</div><div class="set-hdr">Reps</div></div>';
       for (var s = 1; s <= 5; s++) {
@@ -549,11 +585,28 @@ function saveSession() {
       var ex = (config.exercises || []).find(function(e) { return e.id === eid; });
       if (!ex) return;
       if (ex.type === 'cardio_z2' || ex.type === 'hiit') {
-        sessData[eid] = {
-          mode: ex.type === 'hiit' ? 'hiit' : 'z2',
-          duree: parseFloat(document.getElementById('c' + eid + '_dur')?.value) || 0,
-          fc_moy: parseInt(document.getElementById('c' + eid + '_bpm')?.value) || 0
-        };
+        var z2btn = document.getElementById('cm-z2-' + eid);
+        var mode = (z2btn && z2btn.classList.contains('on')) ? 'z2' : 'hiit';
+        if (mode === 'z2') {
+          sessData[eid] = {
+            mode: 'z2',
+            appareil: (document.getElementById('c' + eid + '_app') || {value:'velo'}).value,
+            duree: parseFloat((document.getElementById('c' + eid + '_dur') || {value:0}).value) || 0,
+            fc_moy: parseInt((document.getElementById('c' + eid + '_fcm') || {value:0}).value) || 0,
+            fc_max: parseInt((document.getElementById('c' + eid + '_fcx') || {value:0}).value) || 0
+          };
+        } else {
+          var rounds = parseInt((document.getElementById('c' + eid + '_rounds') || {value:4}).value) || 4;
+          var ivs2 = [];
+          for (var i = 0; i < 2; i++) {
+            ivs2.push({
+              duree: parseFloat((document.getElementById('c' + eid + '_iv' + i + '_dur') || {value:0}).value) || 0,
+              bpm: parseInt((document.getElementById('c' + eid + '_iv' + i + '_bpm') || {value:0}).value) || 0,
+              bpm_reel: parseInt((document.getElementById('c' + eid + '_iv' + i + '_real') || {value:0}).value) || 0
+            });
+          }
+          sessData[eid] = { mode: 'hiit', rounds: rounds, intervals: ivs2 };
+        }
       } else {
         var sets = [];
         for (var s = 1; s <= 5; s++) {
@@ -833,6 +886,13 @@ async function wifiPushSessions() {
     st.style.color = 'var(--red)';
     toast('Erreur envoi séances', 'warn');
   }
+}
+
+function swCM(eid, mode) {
+  var z2 = document.getElementById('cm-z2-' + eid);
+  var hiit = document.getElementById('cm-hiit-' + eid);
+  if (z2) z2.classList.toggle('on', mode === 'z2');
+  if (hiit) hiit.classList.toggle('on', mode === 'hiit');
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
