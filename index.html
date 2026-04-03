@@ -186,51 +186,72 @@ input[type=file]{display:none}
 
   <!-- CONFIG -->
   <div class="page" id="page-config">
+
+    <!-- Adresse PC -->
+    <div class="card">
+      <div class="card-title">Connexion WiFi au PC</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        Saisis l'adresse affichée dans la fenêtre noire de <strong>lancer.bat</strong> sur ton PC.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="pc-ip" placeholder="ex: 192.168.1.50:5000"
+          style="flex:1;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:15px;padding:10px 12px">
+        <button class="btn teal" onclick="testConnection()" style="white-space:nowrap;padding:10px 14px">Tester</button>
+      </div>
+      <div id="conn-status" style="font-size:12px;min-height:18px;margin-top:8px;font-family:'DM Mono',monospace;color:var(--muted2)"></div>
+    </div>
+
+    <!-- Sync WiFi -->
+    <div class="card">
+      <div class="card-title">Synchronisation WiFi</div>
+      <div class="cfg-row" onclick="wifiPullConfig()" style="margin-bottom:8px">
+        <div class="cfg-left">
+          <h3>&#8681; Recevoir config depuis le PC</h3>
+          <p>Cycles, exercices, dernières valeurs</p>
+        </div>
+        <div class="cfg-arrow">&#8250;</div>
+      </div>
+      <div class="cfg-row" onclick="wifiPushSessions()">
+        <div class="cfg-left">
+          <h3>&#8679; Envoyer séances au PC</h3>
+          <p id="pending-count">0 séance(s) en attente</p>
+        </div>
+        <div class="cfg-arrow">&#8250;</div>
+      </div>
+      <div id="sync-status" style="font-size:12px;min-height:18px;margin-top:8px;font-family:'DM Mono',monospace;color:var(--muted2);text-align:center"></div>
+    </div>
+
+    <!-- Programme actif -->
     <div class="card">
       <div class="card-title">Programme actif</div>
       <div id="cfg-cycle-info" style="font-size:14px;color:var(--muted2)">Aucune configuration chargée</div>
     </div>
 
-    <div class="info-box">
-      <strong>Flux de travail :</strong><br>
-      1. Sur le PC : Gym Tracker &#8594; App Mobile &#8594; Générer config<br>
-      2. Ici : Importer config (via OneDrive ou USB)<br>
-      3. Faire la séance &#8594; Enregistrer<br>
-      4. Ici : Exporter séances &#8594; OneDrive<br>
-      5. Sur le PC : App Mobile &#8594; Importer séance
-    </div>
-
-    <div class="cfg-row" onclick="document.getElementById('file-config').click()">
-      <div class="cfg-left">
-        <h3>&#8681; Importer config depuis PC</h3>
-        <p>Charge cycles, exercices et dernières valeurs</p>
+    <!-- Fallback fichier -->
+    <div class="card">
+      <div class="card-title">Sans WiFi — transfert par fichier</div>
+      <div class="cfg-row" onclick="document.getElementById('file-config').click()" style="margin-bottom:8px">
+        <div class="cfg-left">
+          <h3>&#8681; Importer config (fichier)</h3>
+          <p>Via OneDrive ou USB</p>
+        </div>
+        <div class="cfg-arrow">&#8250;</div>
       </div>
-      <div class="cfg-arrow">&#8250;</div>
-    </div>
-    <input type="file" id="file-config" accept=".json" onchange="importConfig(event)">
-
-    <div class="cfg-row" onclick="exportPending()">
-      <div class="cfg-left">
-        <h3>&#8679; Exporter séances non synchronisées</h3>
-        <p id="pending-count">0 séance(s) en attente</p>
+      <input type="file" id="file-config" accept=".json" onchange="importConfig(event)">
+      <div class="cfg-row" onclick="exportPending()" style="margin-bottom:8px">
+        <div class="cfg-left">
+          <h3>&#8679; Exporter séances (fichier)</h3>
+          <p id="pending-count2">0 séance(s) en attente</p>
+        </div>
+        <div class="cfg-arrow">&#8250;</div>
       </div>
-      <div class="cfg-arrow">&#8250;</div>
-    </div>
-
-    <div class="cfg-row" onclick="exportAll()">
-      <div class="cfg-left">
-        <h3>&#8679; Exporter toutes les séances</h3>
-        <p>Inclut les séances déjà synchronisées</p>
+      <div class="cfg-row" onclick="if(confirm('Effacer toutes les données locales ?')) clearAll()">
+        <div class="cfg-left">
+          <h3 style="color:var(--red)">&#9747; Effacer les données locales</h3>
+          <p>Supprime config et séances du téléphone</p>
+        </div>
+        <div class="cfg-arrow">&#8250;</div>
       </div>
-      <div class="cfg-arrow">&#8250;</div>
-    </div>
-
-    <div class="cfg-row" onclick="if(confirm('Effacer toutes les données locales ?')) clearAll()">
-      <div class="cfg-left">
-        <h3 style="color:var(--red)">&#9747; Effacer les données locales</h3>
-        <p>Supprime config et séances du téléphone</p>
-      </div>
-      <div class="cfg-arrow">&#8250;</div>
     </div>
 
     <div class="status-bar" id="cfg-status"></div>
@@ -281,6 +302,12 @@ function init() {
 
   renderSession();
   updatePendingCount();
+  // Charger IP PC sauvegardée
+  var savedIp = localStorage.getItem('gym_pc_ip');
+  if (savedIp) {
+    var el = document.getElementById('pc-ip');
+    if (el) el.value = savedIp;
+  }
 }
 
 function saveLocal() {
@@ -612,8 +639,11 @@ function renderConfigPage() {
 
 function updatePendingCount() {
   var pending = Object.values(sessions).filter(function(s) { return !s.synced; }).length;
+  var txt = pending + ' séance(s) en attente';
   var el = document.getElementById('pending-count');
-  if (el) el.textContent = pending + ' séance(s) en attente d\'export';
+  if (el) el.textContent = txt;
+  var el2 = document.getElementById('pending-count2');
+  if (el2) el2.textContent = txt;
 }
 
 function importConfig(evt) {
@@ -684,11 +714,125 @@ function doExport(data, suffix) {
 function clearAll() {
   localStorage.removeItem('gym_config');
   localStorage.removeItem('gym_sessions');
+  localStorage.removeItem('gym_pc_ip');
   config = null;
   sessions = {};
   renderSession();
   renderConfigPage();
   toast('Données effacées');
+}
+
+// ── WiFi sync ─────────────────────────────────────────────────────────────────
+function getPcUrl() {
+  var ip = document.getElementById('pc-ip') ?
+    document.getElementById('pc-ip').value.trim() :
+    (localStorage.getItem('gym_pc_ip') || '');
+  if (!ip) return null;
+  if (!ip.startsWith('http')) ip = 'http://' + ip;
+  return ip;
+}
+
+function savePcIp() {
+  var el = document.getElementById('pc-ip');
+  if (el && el.value.trim()) {
+    localStorage.setItem('gym_pc_ip', el.value.trim());
+  }
+}
+
+async function testConnection() {
+  var url = getPcUrl();
+  if (!url) { toast('Saisis l\'adresse PC', 'warn'); return; }
+  savePcIp();
+  var st = document.getElementById('conn-status');
+  st.textContent = 'Test en cours…';
+  st.style.color = 'var(--muted2)';
+  try {
+    var r = await fetch(url + '/api/ping', { signal: AbortSignal.timeout(4000) });
+    var d = await r.json();
+    if (d.ok) {
+      st.textContent = '✓ Connecté — ' + d.server;
+      st.style.color = 'var(--teal)';
+      toast('PC trouvé');
+    } else {
+      throw new Error('Réponse inattendue');
+    }
+  } catch(e) {
+    st.textContent = '✗ Impossible de joindre le PC — vérifie l\'adresse et le WiFi';
+    st.style.color = 'var(--red)';
+    toast('PC non joignable', 'warn');
+  }
+}
+
+async function wifiPullConfig() {
+  var url = getPcUrl();
+  if (!url) { toast('Saisis et teste l\'adresse PC d\'abord', 'warn'); return; }
+  savePcIp();
+  var st = document.getElementById('sync-status');
+  st.textContent = 'Réception de la config…';
+  st.style.color = 'var(--muted2)';
+  try {
+    var r = await fetch(url + '/api/export-mobile', { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('Erreur serveur ' + r.status);
+    var data = await r.json();
+    if (!data.exercises || !data.cycles) throw new Error('Format invalide');
+    config = data;
+    localStorage.setItem('gym_config', JSON.stringify(config));
+    renderSession();
+    renderConfigPage();
+    st.textContent = '✓ Config reçue — ' + config.cycles[0].name;
+    st.style.color = 'var(--teal)';
+    toast('Config synchronisée depuis le PC');
+  } catch(e) {
+    st.textContent = '✗ Erreur : ' + e.message;
+    st.style.color = 'var(--red)';
+    toast('Erreur réception config', 'warn');
+  }
+}
+
+async function wifiPushSessions() {
+  var url = getPcUrl();
+  if (!url) { toast('Saisis et teste l\'adresse PC d\'abord', 'warn'); return; }
+  savePcIp();
+  var pending = Object.keys(sessions).filter(function(k) { return !sessions[k].synced; });
+  if (!pending.length) { toast('Aucune séance à envoyer', 'warn'); return; }
+  var st = document.getElementById('sync-status');
+  st.textContent = 'Envoi de ' + pending.length + ' séance(s)…';
+  st.style.color = 'var(--muted2)';
+  try {
+    // Construire le payload au format attendu par import-session
+    var toSend = {};
+    pending.forEach(function(k) { toSend[k] = sessions[k]; });
+    var payload = {
+      export_type: 'gym_mobile_sessions',
+      exported_at: new Date().toISOString(),
+      sessions: toSend
+    };
+    // Créer un Blob et l'envoyer comme fichier multipart
+    var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    var form = new FormData();
+    form.append('file', blob, 'sync.json');
+    var r = await fetch(url + '/api/import-session', {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(10000)
+    });
+    var data = await r.json();
+    if (data.ok) {
+      // Marquer comme synchronisées
+      pending.forEach(function(k) { sessions[k].synced = true; });
+      saveLocal();
+      updatePendingCount();
+      st.textContent = '✓ ' + data.message;
+      st.style.color = 'var(--teal)';
+      toast(data.message);
+    } else {
+      throw new Error(data.error || 'Erreur serveur');
+    }
+  } catch(e) {
+    st.textContent = '✗ Erreur : ' + e.message;
+    st.style.color = 'var(--red)';
+    toast('Erreur envoi séances', 'warn');
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
