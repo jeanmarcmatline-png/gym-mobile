@@ -39,16 +39,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 .card-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted2);text-transform:uppercase;margin-bottom:12px}
 /* Day pills */
 .dpills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.dpill{padding:9px 16px;border-radius:20px;font-size:14px;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .15s}
+.dpill{padding:6px 13px;border-radius:16px;font-size:12px;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .15s}
 .dpill.on{background:var(--purple);border-color:var(--purple);color:#fff}
 /* Feeling */
-.feel-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:14px}
-.feel-lbl{font-size:14px;color:var(--muted)}
+.feel-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:10px}
+.feel-lbl{font-size:13px;color:var(--muted)}
 .feel-btns{display:flex;gap:10px}
-.fb{width:42px;height:42px;border-radius:50%;border:1px solid var(--border2);background:var(--bg4);color:var(--muted);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.fb{width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);background:var(--bg4);color:var(--muted);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .fb.on{background:var(--purple);border-color:var(--purple);color:#fff}
 /* Timer */
-.timer-card{background:var(--bg2);border:1px solid rgba(78,203,164,0.25);border-radius:14px;padding:14px;margin-bottom:14px}
+.timer-card{background:var(--bg2);border:1px solid rgba(78,203,164,0.25);border-radius:14px;padding:14px;margin-bottom:0}
+.sess-sticky{flex-shrink:0;padding:12px 14px 0}
+.sess-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 20px}
+#page-session{display:none;flex-direction:column;padding:0}
+#page-session.on{display:flex}
 .timer-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px}
 .timer-disp{font-size:52px;font-weight:700;font-family:'DM Mono',monospace;text-align:center;color:var(--muted2);margin:6px 0;transition:color .3s}
 .timer-disp.run{color:var(--teal)}
@@ -150,34 +154,38 @@ input[type=file]{display:none}
 
   <!-- SEANCE -->
   <div class="page on" id="page-session">
-    <div id="sess-no-config" style="display:none">
+    <div id="sess-no-config" style="display:none;padding:14px">
       <div class="rest-msg">
         <div class="ico">&#9881;</div>
         <p style="font-size:15px;margin-bottom:12px">Aucune configuration chargée.<br>Va dans <strong>Config</strong> pour importer<br>le fichier depuis le PC.</p>
       </div>
     </div>
-    <div id="sess-main">
-      <div class="dpills" id="day-pills"></div>
-      <div class="feel-row">
-        <span class="feel-lbl">Forme du jour</span>
-        <div class="feel-btns">
-          <div class="fb" onclick="setFeel(1,this)">–</div>
-          <div class="fb on" onclick="setFeel(2,this)">&#9711;</div>
-          <div class="fb" onclick="setFeel(3,this)">+</div>
+    <div id="sess-main" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <!-- Zone sticky : jours + forme + timer -->
+      <div class="sess-sticky">
+        <div class="dpills" id="day-pills"></div>
+        <div class="feel-row">
+          <span class="feel-lbl">Forme du jour</span>
+          <div class="feel-btns">
+            <div class="fb" onclick="setFeel(1,this)">–</div>
+            <div class="fb on" onclick="setFeel(2,this)">&#9711;</div>
+            <div class="fb" onclick="setFeel(3,this)">+</div>
+          </div>
+        </div>
+        <div class="timer-card">
+          <div class="timer-title">Repos entre les séries</div>
+          <div class="timer-disp" id="timer-disp">00:00</div>
+          <div class="timer-prog-bg"><div class="timer-prog-fill" id="timer-bar"></div></div>
+          <div class="timer-preset-row">
+            <div class="tbtn" onclick="startTimer(60)">1 min</div>
+            <div class="tbtn" onclick="startTimer(90)">1 min 30</div>
+            <div class="tbtn" onclick="startTimer(120)">2 min</div>
+          </div>
+          <div class="tbtn stop" onclick="stopTimer()">&#9632; Arrêter</div>
         </div>
       </div>
-      <div class="timer-card">
-        <div class="timer-title">Repos entre les séries</div>
-        <div class="timer-disp" id="timer-disp">00:00</div>
-        <div class="timer-prog-bg"><div class="timer-prog-fill" id="timer-bar"></div></div>
-        <div class="timer-preset-row">
-          <div class="tbtn" onclick="startTimer(60)">1 min</div>
-          <div class="tbtn" onclick="startTimer(90)">1 min 30</div>
-          <div class="tbtn" onclick="startTimer(120)">2 min</div>
-        </div>
-        <div class="tbtn stop" onclick="stopTimer()">&#9632; Arrêter</div>
-      </div>
-      <div id="sess-form"></div>
+      <!-- Zone scrollable : exercices uniquement -->
+      <div class="sess-scroll" id="sess-form"></div>
     </div>
   </div>
 
@@ -294,6 +302,15 @@ var timerLeft = 0;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
+  // Wake Lock — empêche la mise en veille
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(function(){});
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        navigator.wakeLock.request('screen').catch(function(){});
+      }
+    });
+  }
   var now = new Date();
   document.getElementById('tb-date').textContent =
     now.toLocaleDateString('fr-BE', {weekday:'short', day:'numeric', month:'short'});
