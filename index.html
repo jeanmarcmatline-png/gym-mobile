@@ -26,8 +26,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 .topbar-left h1{font-size:17px;font-weight:600;color:var(--text)}
 .topbar-left p{font-size:12px;color:var(--teal);font-family:'DM Mono',monospace;margin-top:1px}
 .topbar-date{font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace}
-.pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.page{display:none;padding:14px 14px 20px}
+.pages{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.page{display:none;padding:14px 14px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
 .page.on{display:block}
 .botnav{background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
 .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;cursor:pointer;border:none;background:none}
@@ -50,9 +50,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 /* Timer */
 .timer-card{background:var(--bg2);border:1px solid rgba(78,203,164,0.25);border-radius:14px;padding:14px;margin-bottom:0}
 .sess-sticky{flex-shrink:0;padding:12px 14px 0}
-.sess-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 20px}
-#page-session{display:none;flex-direction:column;padding:0}
-#page-session.on{display:flex}
+.sess-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 80px;min-height:0}
+#page-session{display:none;flex-direction:column;padding:0;overflow:hidden}
+#page-session.on{display:flex;flex:1}
 .timer-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px}
 .timer-disp{font-size:52px;font-weight:700;font-family:'DM Mono',monospace;text-align:center;color:var(--muted2);margin:6px 0;transition:color .3s}
 .timer-disp.run{color:var(--teal)}
@@ -160,7 +160,7 @@ input[type=file]{display:none}
         <p style="font-size:15px;margin-bottom:12px">Aucune configuration chargée.<br>Va dans <strong>Config</strong> pour importer<br>le fichier depuis le PC.</p>
       </div>
     </div>
-    <div id="sess-main" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div id="sess-main" style="display:flex;flex-direction:column;height:100%;overflow:hidden">
       <!-- Zone sticky : jours + forme + timer -->
       <div class="sess-sticky">
         <div class="dpills" id="day-pills"></div>
