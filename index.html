@@ -21,13 +21,13 @@
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px}
 /* Layout */
-.shell{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.shell{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:env(safe-area-inset-top,12px)}
 .topbar-left h1{font-size:17px;font-weight:600;color:var(--text)}
 .topbar-left p{font-size:12px;color:var(--teal);font-family:'DM Mono',monospace;margin-top:1px}
 .topbar-date{font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace}
-.pages{flex:1;overflow:hidden;display:flex;flex-direction:column}
-.page{display:none;padding:14px 14px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.pages{flex:1;overflow:hidden;position:relative;min-height:0}
+.page{display:none;position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 20px}
 .page.on{display:block}
 .botnav{background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
 .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;cursor:pointer;border:none;background:none}
@@ -51,8 +51,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 .timer-card{background:var(--bg2);border:1px solid rgba(78,203,164,0.25);border-radius:14px;padding:14px;margin-bottom:0}
 .sess-sticky{flex-shrink:0;padding:12px 14px 0}
 .sess-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 80px;min-height:0}
-#page-session{display:none;flex-direction:column;padding:0;overflow:hidden}
-#page-session.on{display:flex;flex:1}
+#page-session{display:none;padding:0}
+#page-session.on{display:flex;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
 .timer-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px}
 .timer-disp{font-size:52px;font-weight:700;font-family:'DM Mono',monospace;text-align:center;color:var(--muted2);margin:6px 0;transition:color .3s}
 .timer-disp.run{color:var(--teal)}
