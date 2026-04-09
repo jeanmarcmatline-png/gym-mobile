@@ -89,12 +89,29 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 /* Save button */
 .save-btn{width:100%;padding:16px;background:var(--purple);border-radius:14px;border:none;color:#fff;font-size:17px;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:opacity .15s}
 .save-btn:active{opacity:.82}
+/* Formulaire enregistré — valeurs grisées */
+.form-saved .set-inp,
+.form-saved .note-inp,
+.form-saved select,
+.form-saved .cmode{opacity:.38;pointer-events:none;color:var(--muted2)}
+.form-saved .save-btn{opacity:.45;background:var(--muted2);pointer-events:none;cursor:default}
 /* Config */
 .cfg-row{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:background .15s}
 .cfg-row:active{background:var(--bg4)}
 .cfg-left h3{font-size:15px;font-weight:500;color:var(--text)}
 .cfg-left p{font-size:12px;color:var(--muted2);margin-top:2px}
 .cfg-arrow{color:var(--muted2);font-size:20px}
+/* Portrait lock — message affiché en paysage */
+@media (orientation: landscape) {
+  .shell{display:none!important}
+  body::after{
+    content:'⟳ Retournez l\'écran en mode portrait';
+    display:flex;align-items:center;justify-content:center;
+    height:100vh;width:100vw;
+    font-size:17px;color:var(--muted);text-align:center;padding:24px;
+    white-space:pre-wrap;
+  }
+}
 /* Session list */
 .sess-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:6px}
 .sess-item.synced{opacity:.5}
@@ -301,6 +318,10 @@ var timerLeft = 0;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
+  // Verrouillage orientation portrait
+  if (screen && screen.orientation && typeof screen.orientation.lock === 'function') {
+    screen.orientation.lock('portrait').catch(function() {});
+  }
   // Wake Lock — empêche la mise en veille
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(function(){});
@@ -547,6 +568,9 @@ function renderForm() {
 
   form.innerHTML = html;
 
+  // Si une session est déjà enregistrée aujourd'hui, griser les champs
+  if (existingSess) form.classList.add('form-saved');
+
   // Calculer tonnages initiaux et attacher listeners
   if (config) {
     var cycle2 = config.cycles[0];
@@ -649,6 +673,10 @@ function saveSession() {
 
   saveLocal();
   updatePendingCount();
+
+  // Griser les champs du formulaire après enregistrement
+  var sf = document.getElementById('sess-form');
+  if (sf) sf.classList.add('form-saved');
 
   var st = document.getElementById('sess-status');
   if (st) {
@@ -900,31 +928,4 @@ async function wifiPushSessions() {
   } catch(e) {
     st.textContent = '✗ Erreur : ' + e.message;
     st.style.color = 'var(--red)';
-    toast('Erreur envoi séances', 'warn');
-  }
-}
-
-function swCMclick(el) {
-  var eid = el.getAttribute('data-eid');
-  var mode = el.getAttribute('data-mode');
-  swCM(eid, mode);
-}
-function swCM(eid, mode) {
-  var z2 = document.getElementById('cm-z2-' + eid);
-  var hiit = document.getElementById('cm-hiit-' + eid);
-  if (z2) z2.classList.toggle('on', mode === 'z2');
-  if (hiit) hiit.classList.toggle('on', mode === 'hiit');
-}
-
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type === 'warn' ? ' warn' : '');
-  setTimeout(function() { t.classList.remove('show'); }, 2800);
-}
-
-init();
-</script>
-</body>
-</html>
+    toast('E
