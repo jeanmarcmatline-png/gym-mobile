@@ -919,4 +919,31 @@ async function wifiPushSessions() {
   } catch(e) {
     st.textContent = '✗ Erreur : ' + e.message;
     st.style.color = 'var(--red)';
-    toast('E
+    toast('Erreur envoi séances', 'warn');
+  }
+}
+
+function swCMclick(el) {
+  var eid = el.getAttribute('data-eid');
+  var mode = el.getAttribute('data-mode');
+  swCM(eid, mode);
+}
+function swCM(eid, mode) {
+  var z2 = document.getElementById('cm-z2-' + eid);
+  var hiit = document.getElementById('cm-hiit-' + eid);
+  if (z2) z2.classList.toggle('on', mode === 'z2');
+  if (hiit) hiit.classList.toggle('on', mode === 'hiit');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'warn' ? ' warn' : '');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+init();
+</script>
+</body>
+</html>
