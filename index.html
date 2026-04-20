@@ -303,6 +303,7 @@ var config = null;
 var sessions = {};
 var curDay = 0;
 var curFeeling = 2;
+var lastKnownValues = {};
 var timerInterval = null;
 var timerTotal = 0;
 var timerLeft = 0;
@@ -434,11 +435,24 @@ function renderSession() {
   renderForm();
 }
 
-function selDay(i) {
+async function selDay(i) {
   curDay = i;
   document.querySelectorAll('.dpill').forEach(function(p, idx) {
     p.classList.toggle('on', idx === i);
   });
+  lastKnownValues = {};
+  var url = getPcUrl();
+  if (url && config && config.cycles && config.cycles.length) {
+    try {
+      var cid = config.cycles[0].id;
+      var r = await fetch(url + '/api/sessions/last?cycle_id=' + cid + '&day_index=' + i,
+        { signal: AbortSignal.timeout(3000) });
+      if (r.ok) {
+        var d = await r.json();
+        if (d && d.data) lastKnownValues = d.data;
+      }
+    } catch(e) {}
+  }
   renderForm();
 }
 
@@ -470,12 +484,14 @@ function renderForm() {
     var ex = (config.exercises || []).find(function(e) { return e.id === eid; });
     if (!ex) return;
 
-    // Dernières valeurs : session du jour si existe, sinon last_values
-    var prevSets = [];
-    if (sessData[eid] && Array.isArray(sessData[eid])) {
-      prevSets = sessData[eid];
-    } else if (config.last_values && config.last_values[eid]) {
-      prevSets = config.last_values[eid].sets || [];
+    // Valeurs pour les inputs : session du jour si on édite
+    var inputSets = (sessData[eid] && Array.isArray(sessData[eid])) ? sessData[eid] : [];
+    // Valeurs de référence : dernière séance depuis l'API, sinon last_values de la config
+    var hintSets = [];
+    if (lastKnownValues[eid] && Array.isArray(lastKnownValues[eid])) {
+      hintSets = lastKnownValues[eid];
+    } else if (config.last_values && config.last_values[String(eid)]) {
+      hintSets = config.last_values[String(eid)].sets || [];
     }
 
     var isCardio = ex.type === 'cardio_z2' || ex.type === 'hiit';
@@ -527,21 +543,24 @@ function renderForm() {
     } else {
       html += '<div class="set-hdrs"><div></div><div class="set-hdr">Poids kg</div><div class="set-hdr">Reps</div></div>';
       for (var s = 1; s <= 5; s++) {
-        var ps = prevSets[s - 1] || {};
+        var ps = inputSets[s - 1] || {};
+        var hs = hintSets[s - 1] || {};
         var heavy = (s === 1);
         var cls = heavy ? 'set-inp heavy' : 'set-inp';
         var lbl = heavy ? '<div class="set-lbl heavy">S1&#9733;</div>' : '<div class="set-lbl">S' + s + '</div>';
-        var prevW = ps.weight || '';
-        var prevR = ps.reps || '';
+        var inputW = ps.weight || '';
+        var inputR = ps.reps || '';
+        var hintW = hs.weight || '';
+        var hintR = hs.reps || '';
         html += '<div class="set-row">';
         html += lbl;
         html += '<div class="set-inp-wrap">';
-        html += '<input class="' + cls + '" type="number" inputmode="decimal" id="ex' + eid + '_s' + s + '_w" value="' + prevW + '" placeholder="—">';
-        if (prevW) html += '<div class="prev-val">préc: ' + prevW + '</div>';
+        html += '<input class="' + cls + '" type="number" inputmode="decimal" id="ex' + eid + '_s' + s + '_w" value="' + inputW + '" placeholder="—">';
+        if (hintW) html += '<div class="prev-val">préc: ' + hintW + ' kg</div>';
         html += '</div>';
         html += '<div class="set-inp-wrap">';
-        html += '<input class="' + cls + '" type="number" inputmode="numeric" id="ex' + eid + '_s' + s + '_r" value="' + prevR + '" placeholder="' + (heavy ? '5-6' : '10') + '">';
-        if (prevR) html += '<div class="prev-val">préc: ' + prevR + '</div>';
+        html += '<input class="' + cls + '" type="number" inputmode="numeric" id="ex' + eid + '_s' + s + '_r" value="' + inputR + '" placeholder="' + (heavy ? '5-6' : '10') + '">';
+        if (hintR) html += '<div class="prev-val">préc: ' + hintR + ' reps</div>';
         html += '</div>';
         html += '</div>';
       }
