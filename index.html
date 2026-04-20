@@ -442,14 +442,12 @@ async function selDay(i) {
   });
   lastKnownValues = {};
   var url = getPcUrl();
-  if (url && config && config.cycles && config.cycles.length) {
+  if (url) {
     try {
-      var cid = config.cycles[0].id;
-      var r = await fetch(url + '/api/sessions/last?cycle_id=' + cid + '&day_index=' + i,
-        { signal: AbortSignal.timeout(3000) });
+      var r = await fetch(url + '/api/last-values', { signal: AbortSignal.timeout(3000) });
       if (r.ok) {
         var d = await r.json();
-        if (d && d.data) lastKnownValues = d.data;
+        if (d) lastKnownValues = d;
       }
     } catch(e) {}
   }
@@ -488,10 +486,11 @@ function renderForm() {
     var inputSets = (sessData[eid] && Array.isArray(sessData[eid])) ? sessData[eid] : [];
     // Valeurs de référence : dernière séance depuis l'API, sinon last_values de la config
     var hintSets = [];
-    if (lastKnownValues[eid] && Array.isArray(lastKnownValues[eid])) {
-      hintSets = lastKnownValues[eid];
-    } else if (config.last_values && config.last_values[String(eid)]) {
-      hintSets = config.last_values[String(eid)].sets || [];
+    var eid_s = String(eid);
+    if (lastKnownValues[eid_s] && Array.isArray(lastKnownValues[eid_s].sets)) {
+      hintSets = lastKnownValues[eid_s].sets;
+    } else if (config.last_values && config.last_values[eid_s]) {
+      hintSets = config.last_values[eid_s].sets || [];
     }
 
     var isCardio = ex.type === 'cardio_z2' || ex.type === 'hiit';
