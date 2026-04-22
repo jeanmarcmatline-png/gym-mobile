@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0d0d10">
 <link rel="manifest" href="manifest.json">
+<script src="nosleep.min.js"></script>
 <title>Gym Mobile</title>
 <style>
 :root{
@@ -136,6 +137,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);font-size:15px
 .status-bar.err{color:var(--red)}
 /* File input hidden */
 input[type=file]{display:none}
+/* Blocage paysage */
+#portrait-guard{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--muted);font-size:16px;text-align:center;line-height:1.6}
+@media screen and (orientation:landscape){
+  #portrait-guard{display:flex !important}
+  .shell{display:none !important}
+}
 /* Info box */
 .info-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--muted);line-height:1.6}
 .info-box strong{color:var(--text);font-weight:500}
@@ -147,6 +154,10 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
+<div id="portrait-guard">
+  <div style="font-size:48px;opacity:.5">&#8634;</div>
+  <div>Tourne le téléphone<br>en portrait</div>
+</div>
 <div class="shell">
 
 <div class="topbar">
@@ -155,6 +166,7 @@ input[type=file]{display:none}
     <p id="pg-sub"></p>
   </div>
   <span class="topbar-date" id="tb-date"></span>
+  <span style="font-size:13px;color:var(--teal);font-family:'DM Mono',monospace">v4</span>
 </div>
 
 <div class="pages">
@@ -308,21 +320,42 @@ var timerInterval = null;
 var timerTotal = 0;
 var timerLeft = 0;
 
+// ── Anti-veille (NoSleep.js) ──────────────────────────────────────────────────
+var _noSleep = (typeof NoSleep !== 'undefined') ? new NoSleep() : null;
+
+function enableNoSleep() {
+  if (_noSleep) {
+    _noSleep.enable();
+  }
+}
+
+// ── Verrouillage portrait + anti-veille ──────────────────────────────────────
+function lockPortraitAndWake() {
+  // HTTPS → orientation.lock() fonctionne directement
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(function(){});
+  }
+  enableNoSleep();
+}
+
+// Overlay CSS/JS en dernier recours si le lock échoue
+function checkOrientation() {
+  var landscape = window.innerWidth > window.innerHeight;
+  var guard = document.getElementById('portrait-guard');
+  var shell = document.querySelector('.shell');
+  if (guard) guard.style.display = landscape ? 'flex' : '';
+  if (shell) shell.style.display = landscape ? 'none' : '';
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', function() {
+  setTimeout(checkOrientation, 100);
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
-  // Verrouillage orientation portrait
-  if (screen && screen.orientation && typeof screen.orientation.lock === 'function') {
-    screen.orientation.lock('portrait').catch(function() {});
-  }
-  // Wake Lock — empêche la mise en veille
-  if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').catch(function(){});
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') {
-        navigator.wakeLock.request('screen').catch(function(){});
-      }
-    });
-  }
+  checkOrientation();
+  // Au premier toucher : verrouillage portrait + anti-veille
+  document.addEventListener('touchstart', lockPortraitAndWake, { once: true });
   var now = new Date();
   document.getElementById('tb-date').textContent =
     now.toLocaleDateString('fr-BE', {weekday:'short', day:'numeric', month:'short'});
